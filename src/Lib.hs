@@ -81,4 +81,8 @@ sentence :: Parser [Text]
 sentence = (\words _ -> words) 
     <$> some (word <* skipJunk)
     <*> some punctuation
+    <* skipJunk
     <|> empty
+
+allSentences :: Parser [[Text]]
+allSentences = some sentence
