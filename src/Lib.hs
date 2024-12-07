@@ -143,4 +143,19 @@ makeNGrams words =
     -- создаем триграммы вида (two words -> next word)
     toTriGrams words
 
-
+processText :: Text -> NGramMap
+processText text = case runParser allSentences text of
+    Nothing -> []
+    Just (_, sentences) -> let
+        -- берем все слова из всех предложений
+        allWords = nub $ concat sentences
+        -- создаем n-граммы из всех предложений и удаляем дубликаты
+        allNGrams = groupPairs 
+                   $ nub -- удаляем дубликаты
+                   $ concatMap makeNGrams sentences
+        -- добавляем слова, которые не имеют следующих слов
+        singleWords = map (\w -> (w, [])) 
+                     $ filter (\w -> not $ any (\(prefix, _) -> prefix == w) allNGrams) 
+                     $ allWords
+        in sortBy (\x y -> compare (fst x) (fst y)) 
+           $ allNGrams ++ singleWords
