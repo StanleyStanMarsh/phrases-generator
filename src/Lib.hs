@@ -44,6 +44,9 @@ instance Alternative Parser where
             -- если вернул какой то результат, то оставляем результат
             res -> res
 
+isPunctuation :: Char -> Bool
+isPunctuation c = c `elem` ['.', '!', '?', ';', ':', '(', ')']
+
 satisfy :: (Char -> Bool) -> Parser Char
 satisfy pr = Parser f where
     -- берем первый символ
@@ -66,3 +69,6 @@ oneSpace = satisfy isSpace
 
 spaces :: Parser Text
 spaces = (T.cons) <$> oneSpace <*> spaces <|> pure T.empty
+
+punctuation :: Parser Char
+punctuation = satisfy isPunctuation
