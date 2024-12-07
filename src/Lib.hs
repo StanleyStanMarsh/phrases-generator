@@ -9,6 +9,7 @@ import qualified Data.Text as T
 import Data.Char (isLetter, isSpace)
 
 -- Parser
+-- instances
 
 newtype Parser a = Parser { runParser :: Text -> Maybe (Text, a) }
 
@@ -47,8 +48,15 @@ instance Alternative Parser where
             -- если вернул какой то результат, то оставляем результат
             res -> res
 
+-- functions
+
 isPunctuation :: Char -> Bool
 isPunctuation c = c `elem` ['.', '!', '?', ';', ':', '(', ')']
+
+joinWords :: [Text] -> Text
+joinWords = T.intercalate (T.pack " ")
+
+-- parsers
 
 satisfy :: (Char -> Bool) -> Parser Char
 satisfy pr = Parser f where
@@ -90,4 +98,19 @@ sentence = (\words _ -> words)
 allSentences :: Parser [[Text]]
 allSentences = some sentence
 
+sentenceAsText :: Parser Text
+sentenceAsText = (\words _ -> joinWords words)
+    <$> some (word <* skipJunk)
+    <*> some punctuation
+    <* skipJunk
+    <|> empty
+
+allSentencesAsText :: Parser [Text]
+allSentencesAsText = some sentenceAsText
+
 -- N-gram
+
+type NGramMap = [(Text, [Text])]
+
+toBiGrams :: [Text] -> [(Text, Text)]
+toBiGrams words = zip words (tail words)
