@@ -72,3 +72,13 @@ spaces = (T.cons) <$> oneSpace <*> spaces <|> pure T.empty
 
 punctuation :: Parser Char
 punctuation = satisfy isPunctuation
+
+skipJunk :: Parser ()
+skipJunk = Parser f where
+    f input = Just (T.dropWhile (\c -> not (isLetter c || isPunctuation c)) input, ())
+
+sentence :: Parser [Text]
+sentence = (\words _ -> words) 
+    <$> some (word <* skipJunk)
+    <*> some punctuation
+    <|> empty
