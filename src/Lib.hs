@@ -5,7 +5,7 @@ module Lib
 import Control.Applicative
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.Char (isLetter)
+import Data.Char (isLetter, isSpace)
 
 newtype Parser a = Parser { runParser :: Text -> Maybe (Text, a) }
 
@@ -61,3 +61,8 @@ word = Parser f where
         Nothing -> Nothing
         Just (remaining, chars) -> Just (remaining, T.pack chars)
 
+oneSpace :: Parser Char
+oneSpace = satisfy isSpace
+
+spaces :: Parser Text
+spaces = (T.cons) <$> oneSpace <*> spaces <|> pure T.empty
