@@ -116,13 +116,18 @@ type NGramMap = [(Text, [Text])]
 toBiGrams :: [Text] -> [(Text, Text)]
 toBiGrams words = zip words (tail words)
 
+toBiGramsJoined :: [Text] -> [(Text, Text)]
+toBiGramsJoined ws = 
+    [(w1, T.concat [w2, T.pack " ", w3]) | (w1,w2,w3) <- triple ws]
+
 triple :: [a] -> [(a, a, a)]
 triple (x:y:z:rest) = (x,y,z) : triple (y:z:rest)
 triple _ = []
 
 toTriGrams :: [Text] -> [(Text, Text)]
-toTriGrams words = 
-    [(T.concat [w1, T.pack " ", w2], w3) | (w1,w2,w3) <- triple words]
+toTriGrams ws = 
+    [(T.concat [w1, T.pack " ", w2], w3) | (w1,w2,w3) <- triple ws]
+
 
 groupPairs :: [(Text, Text)] -> NGramMap
 groupPairs pairs = map (\group -> (fst $ head group, map snd group)) 
@@ -131,16 +136,11 @@ groupPairs pairs = map (\group -> (fst $ head group, map snd group))
 
 makeNGrams :: [Text] -> [(Text, Text)]
 makeNGrams words = 
-    -- Create bi-grams (word -> next word)
+    -- создаем биграммы вида (word -> next word)
     toBiGrams words ++
-    -- Create tri-grams (two words -> next word)
+    -- создаем биграммы вида (word -> two next words joined)
+    toBiGramsJoined words ++
+    -- создаем триграммы вида (two words -> next word)
     toTriGrams words
-  where
-    -- Creates pairs (word, next word)
-    toBiGrams :: [Text] -> [(Text, Text)]
-    toBiGrams ws = zip ws (tail ws)
 
-    -- Creates pairs (two words, next word)
-    toTriGrams :: [Text] -> [(Text, Text)]
-    toTriGrams ws = 
-        [(T.concat [w1, T.pack " ", w2], w3) | (w1,w2,w3) <- triple ws]
+
