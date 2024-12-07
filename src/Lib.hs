@@ -7,6 +7,7 @@ import Control.Applicative
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Char (isLetter, isSpace)
+import Data.List (sortBy, groupBy, nub)
 
 -- Parser
 -- instances
@@ -115,5 +116,31 @@ type NGramMap = [(Text, [Text])]
 toBiGrams :: [Text] -> [(Text, Text)]
 toBiGrams words = zip words (tail words)
 
+triple :: [a] -> [(a, a, a)]
+triple (x:y:z:rest) = (x,y,z) : triple (y:z:rest)
+triple _ = []
+
 toTriGrams :: [Text] -> [(Text, Text)]
-toTriGrams words = zip (map (\(w1, w2) -> T.concat [w1, T.pack " ", w2]) $ zip words (tail words)) (tail $ tail words)
+toTriGrams words = 
+    [(T.concat [w1, T.pack " ", w2], w3) | (w1,w2,w3) <- triple words]
+
+groupPairs :: [(Text, Text)] -> NGramMap
+groupPairs pairs = map (\group -> (fst $ head group, map snd group)) 
+                  $ groupBy (\x y -> fst x == fst y) 
+                  $ sortBy (\x y -> compare (fst x) (fst y)) pairs
+
+makeNGrams :: [Text] -> [(Text, Text)]
+makeNGrams words = 
+    -- Create bi-grams (word -> next word)
+    toBiGrams words ++
+    -- Create tri-grams (two words -> next word)
+    toTriGrams words
+  where
+    -- Creates pairs (word, next word)
+    toBiGrams :: [Text] -> [(Text, Text)]
+    toBiGrams ws = zip ws (tail ws)
+
+    -- Creates pairs (two words, next word)
+    toTriGrams :: [Text] -> [(Text, Text)]
+    toTriGrams ws = 
+        [(T.concat [w1, T.pack " ", w2], w3) | (w1,w2,w3) <- triple ws]
