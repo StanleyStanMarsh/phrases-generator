@@ -114,3 +114,6 @@ type NGramMap = [(Text, [Text])]
 
 toBiGrams :: [Text] -> [(Text, Text)]
 toBiGrams words = zip words (tail words)
+
+toTriGrams :: [Text] -> [(Text, Text)]
+toTriGrams words = zip (map (\(w1, w2) -> T.concat [w1, T.pack " ", w2]) $ zip words (tail words)) (tail $ tail words)
