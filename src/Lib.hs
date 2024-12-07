@@ -1,10 +1,11 @@
 module Lib
-    ( someFunc
+    ( 
     ) where
 
 import Control.Applicative
 import Data.Text (Text)
 import qualified Data.Text as T
+import Data.Char (isLetter)
 
 newtype Parser a = Parser { runParser :: Text -> Maybe (Text, a) }
 
@@ -43,4 +44,20 @@ instance Alternative Parser where
             -- если вернул какой то результат, то оставляем результат
             res -> res
 
+satisfy :: (Char -> Bool) -> Parser Char
+satisfy pr = Parser f where
+    -- берем первый символ
+    f cs = case T.uncons cs of
+        Nothing -> Nothing
+        -- если первый элемент соответствует предикату pr
+        Just (fstChar, remainingText)
+            | pr fstChar -> Just (remainingText, fstChar) -- то возвращаем (остаток, подоходящий первый элемент)
+            | otherwise -> Nothing
+    f _ = Nothing
+
+word :: Parser Text
+word = Parser f where
+    f input = case runParser (some (satisfy isLetter)) input of
+        Nothing -> Nothing
+        Just (remaining, chars) -> Just (remaining, T.pack chars)
 
