@@ -1,11 +1,14 @@
 module Lib
-    ( 
+    ( allSentences
+    , runParser
     ) where
 
 import Control.Applicative
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Char (isLetter, isSpace)
+
+-- Parser
 
 newtype Parser a = Parser { runParser :: Text -> Maybe (Text, a) }
 
@@ -86,3 +89,5 @@ sentence = (\words _ -> words)
 
 allSentences :: Parser [[Text]]
 allSentences = some sentence
+
+-- N-gram
