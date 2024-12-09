@@ -4,6 +4,7 @@ module Lib
     , generatePhrase
     , processText
     , NGramMap
+    , generateDialogue
     ) where
 
 import Control.Applicative
@@ -11,7 +12,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Char (isLetter, isSpace)
 import Data.List (sortBy, groupBy, nub)
-import System.Random (RandomGen, randomR)
+import System.Random (RandomGen, randomR, next, split)
 
 -- Parser
 -- instances
@@ -192,3 +193,69 @@ generatePhraseHelper gen acc lastKey nGrams targetLength
   where
     -- находим список слов по данному ключу (Just [Text]), если такого ключа в словаре нет, то Nothing
     possibleNextWords = maybe [] id $ lookup lastKey nGrams
+
+-- Найти первое подходящее слово от конца фразы, которое есть в словаре
+findLastValidWord :: [Text] -> NGramMap -> Maybe Text
+findLastValidWord [] _ = Nothing
+findLastValidWord (word:rest) nGrams = 
+    case lookup word nGrams of
+        Just _ -> Just word
+        Nothing -> findLastValidWord rest nGrams
+
+type DialogueResponse = Either Text [Text]  -- Left - ошибка, Right - фраза
+type DialogueTurn = (Int, DialogueResponse)  -- (номер модели, ответ)
+
+generateDialogue :: RandomGen g => 
+                   g ->           
+                   Text ->        
+                   NGramMap ->    
+                   NGramMap ->    
+                   Int ->         
+                   [DialogueTurn]  -- возвращает список (номер модели, ответ)
+generateDialogue gen firstWord dict1 dict2 depth = 
+    let firstResponse = generatePhrase gen firstWord dict1
+        (_, newGen) = next gen
+    in (1, firstResponse) : generateDialogueHelper newGen firstResponse 1 dict1 dict2 depth []
+
+generateDialogueHelper :: RandomGen g => 
+                         g -> 
+                         DialogueResponse -> -- последний ответ
+                         Int ->              -- номер модели
+                         NGramMap ->         -- первый словарь
+                         NGramMap ->         -- второй словарь
+                         Int ->              -- остаток глубины
+                         [DialogueTurn] ->   -- накопленный диалог
+                         [DialogueTurn]      -- финальный диалог
+generateDialogueHelper _ _ _ _ _ 0 acc = reverse acc
+generateDialogueHelper gen lastResponse speaker dict1 dict2 depth acc =
+    let 
+        -- следующая модель
+        nextSpeaker = if speaker == 1 then 2 else 1
+        
+        -- словарь для следующей модели
+        currentDict = if nextSpeaker == 1 then dict1 else dict2
+        
+        -- последнее подходящее слово из предыдущего ответа
+        lastWords = case lastResponse of
+            Right phrase -> reverse phrase  -- если слово есть
+            Left _ -> []                   -- если нет, то пустой список
+        
+        -- последнее подходящее слово из предыдущего ответа
+        nextWord = findLastValidWord lastWords currentDict
+        
+        -- следующий ответ (даже если не нашли подходящего слова)
+        nextResponse = case nextWord of
+            Nothing -> Left (T.pack "No valid word found to continue dialogue")
+            Just word -> 
+                let (newGen1, _) = split gen
+                in generatePhrase newGen1 word currentDict
+        
+        (_, newGen2) = split gen
+    in generateDialogueHelper 
+        newGen2 
+        nextResponse
+        nextSpeaker 
+        dict1 
+        dict2 
+        (depth - 1) 
+        ((nextSpeaker, nextResponse) : acc)

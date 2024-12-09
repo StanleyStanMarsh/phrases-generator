@@ -7,29 +7,30 @@ import System.Random (newStdGen)
 
 main :: IO ()
 main = do
-    inputText <- TIO.readFile "input.txt"
+
+    input1 <- TIO.readFile "input.txt"
+    input2 <- TIO.readFile "input2.txt"
     
-    let nGrams = processText inputText
+    let nGrams1 = processText input1
+    let nGrams2 = processText input2
+
+    -- print nGrams1
+    -- print "\n"
+    -- print nGrams2
+    -- print "\n"
     
-    TIO.putStrLn (T.pack "Enter the first word for phrase generation:")
+    TIO.putStrLn (T.pack "Enter the first word for dialogue:")
     firstWord <- T.strip <$> TIO.getLine
     
+    TIO.putStrLn (T.pack "Enter the number of exchanges:")
+    depthStr <- getLine
+    let depth = read depthStr :: Int
+    
     gen <- newStdGen
-    let result = generatePhrase gen firstWord nGrams
-    case result of
-        Left err -> TIO.putStrLn err
-        Right phrase -> do
-            TIO.putStrLn (T.pack "Generated phrase:")
-            TIO.putStrLn $ T.unwords phrase
-    
-    -- Prompt for second word
-    TIO.putStrLn (T.pack "\nEnter another word for phrase generation:")
-    secondWord <- T.strip <$> TIO.getLine
-    
-    gen2 <- newStdGen
-    let result2 = generatePhrase gen2 secondWord nGrams
-    case result2 of
-        Left err -> TIO.putStrLn err
-        Right phrase -> do
-            TIO.putStrLn (T.pack "\nAnother generated phrase:")
-            TIO.putStrLn $ T.unwords phrase
+    let dialogue = generateDialogue gen firstWord nGrams1 nGrams2 depth
+    TIO.putStrLn (T.pack "\nGenerated dialogue:")
+    mapM_ (\(speaker, response) -> do
+        TIO.putStr (T.pack $ "Model " ++ show speaker ++ ": ")
+        case response of
+            Left err -> TIO.putStrLn err
+            Right phrase -> TIO.putStrLn $ T.unwords phrase) dialogue
