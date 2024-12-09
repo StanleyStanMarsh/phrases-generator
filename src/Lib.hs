@@ -75,11 +75,20 @@ satisfy pr = Parser f where
             | otherwise -> Nothing
     f _ = Nothing
 
+isWordChar :: Char -> Bool
+isWordChar c = isLetter c || c == '\''
+
 word :: Parser Text
 word = Parser f where
-    f input = case runParser (some (satisfy isLetter)) input of
+    f input = case runParser (some (satisfy isWordChar)) input of
         Nothing -> Nothing
-        Just (remaining, chars) -> Just (remaining, T.pack chars)
+        Just (remaining, chars) -> 
+            -- проверяем что слово начинается или заканчивается апострофом
+            let word = T.pack chars
+                cleanWord = T.dropAround (== '\'') word
+            in if T.null cleanWord 
+                then Nothing  -- если слово состоит только из апострофов, то возвращаем Nothing
+                else Just (remaining, word)
 
 oneSpace :: Parser Char
 oneSpace = satisfy isSpace
