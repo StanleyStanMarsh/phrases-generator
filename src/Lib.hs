@@ -1,6 +1,9 @@
 module Lib
     ( allSentences
     , runParser
+    , generatePhrase
+    , processText
+    , NGramMap
     ) where
 
 import Control.Applicative
@@ -8,6 +11,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Char (isLetter, isSpace)
 import Data.List (sortBy, groupBy, nub)
+import System.Random (RandomGen, randomR)
 
 -- Parser
 -- instances
@@ -159,3 +163,32 @@ processText text = case runParser allSentences text of
                      $ allWords
         in sortBy (\x y -> compare (fst x) (fst y)) 
            $ allNGrams ++ singleWords
+
+generatePhrase :: RandomGen g => g -> Text -> NGramMap -> Either Text [Text]
+generatePhrase gen firstWord nGrams = 
+    -- если первого слова нет в словаре, то возвращаем ошибку (Left ошибка, Right [слова для фразы])
+    case lookup firstWord nGrams of
+        Nothing -> Left $ T.concat [T.pack "Word '", firstWord, T.pack "' not found in the dictionary"]
+        -- если первое слово есть в словаре, то начинаем генерировать фразу
+        Just nextWords -> 
+            let (targetLength, newGen) = randomR (2, 15) gen
+            in Right $ generatePhraseHelper newGen [firstWord] firstWord nGrams targetLength
+
+generatePhraseHelper :: RandomGen g => g -> [Text] -> Text -> NGramMap -> Int -> [Text]
+generatePhraseHelper gen acc lastKey nGrams targetLength
+    | length acc >= targetLength = take targetLength acc  -- достигли максимальной длины
+    | null possibleNextWords = acc  -- нет больше слов
+    | otherwise = 
+        let (idx, newGen) = randomR (0, length possibleNextWords - 1) gen
+            nextWord = possibleNextWords !! idx
+            -- если два слова, то разбиваем на два
+            nextWords = T.words nextWord
+            -- и добавляем в список слов фразы
+            newAcc = acc ++ nextWords
+            -- используем следующее слово (или два слова) как ключ для следующего шага
+            newKey = nextWord
+        -- рекурсивно вызываем функцию для следующего шага
+        in generatePhraseHelper newGen newAcc newKey nGrams targetLength
+  where
+    -- находим список слов по данному ключу (Just [Text]), если такого ключа в словаре нет, то Nothing
+    possibleNextWords = maybe [] id $ lookup lastKey nGrams
