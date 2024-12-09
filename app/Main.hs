@@ -24,7 +24,7 @@ main = do
     
     TIO.putStrLn (T.pack "Enter the number of exchanges:")
     depthStr <- getLine
-    let depth = read depthStr :: Int
+    let depth = (read depthStr :: Int) - 1
     
     gen <- newStdGen
     let dialogue = generateDialogue gen firstWord nGrams1 nGrams2 depth
