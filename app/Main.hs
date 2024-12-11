@@ -29,8 +29,13 @@ main = do
     gen <- newStdGen
     let dialogue = generateDialogue gen firstWord nGrams1 nGrams2 depth
     TIO.putStrLn (T.pack "\nGenerated dialogue:")
-    mapM_ (\(speaker, response) -> do
-        TIO.putStr (T.pack $ "Model " ++ show speaker ++ ": ")
-        case response of
-            Left err -> TIO.putStrLn err
-            Right phrase -> TIO.putStrLn $ T.unwords phrase) dialogue
+    mapM_ (printDialogueTurn . formatDialogueTurn) dialogue
+  where
+    formatDialogueTurn (speaker, response) = 
+        (T.pack $ "Model " ++ show speaker ++ ": ", 
+         case response of
+            Left err -> err
+            Right phrase -> T.unwords phrase)
+    
+    printDialogueTurn (prefix, message) = 
+        TIO.putStr prefix >> TIO.putStrLn message

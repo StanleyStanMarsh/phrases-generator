@@ -104,10 +104,14 @@ skipJunk = Parser f where
     f input = Just (T.dropWhile (\c -> not (isLetter c || isPunctuation c)) input, ())
 
 sentence :: Parser [Text]
-sentence = (\words _ -> words) 
+sentence = (\words _ -> words)
+    -- парсим слово, пропуская все кроме букв и знаков препинания
     <$> some (word <* skipJunk)
+    -- парсим после слова знаки препинания
     <*> some punctuation
+    -- пропускаем все кроме букв и знаков препинания
     <* skipJunk
+    -- если нет вышло ничего, то возвращаем Nothing
     <|> empty
 
 allSentences :: Parser [[Text]]
@@ -125,24 +129,29 @@ allSentencesAsText = some sentenceAsText
 
 -- N-gram
 
+-- словарь вида (ключ, список значений)
 type NGramMap = [(Text, [Text])]
 
+-- создаем биграммы вида (word -> next word)
 toBiGrams :: [Text] -> [(Text, Text)]
 toBiGrams words = zip words (tail words)
 
+-- создаем биграммы вида (word -> two next words joined)
 toBiGramsJoined :: [Text] -> [(Text, Text)]
 toBiGramsJoined ws = 
     [(w1, T.concat [w2, T.pack " ", w3]) | (w1,w2,w3) <- triple ws]
 
+-- принимает список и возвращает список троек [1, 2, 3, 4] -> [(1, 2, 3), (2, 3, 4)]
 triple :: [a] -> [(a, a, a)]
 triple (x:y:z:rest) = (x,y,z) : triple (y:z:rest)
 triple _ = []
 
+-- создаем триграммы вида (two words -> next word)
 toTriGrams :: [Text] -> [(Text, Text)]
 toTriGrams ws = 
     [(T.concat [w1, T.pack " ", w2], w3) | (w1,w2,w3) <- triple ws]
 
-
+-- группирует пары вида (ключ, значение) в словарь
 groupPairs :: [(Text, Text)] -> NGramMap
 groupPairs pairs = map (\group -> (fst $ head group, map snd group)) 
                   $ groupBy (\x y -> fst x == fst y) 
@@ -161,7 +170,7 @@ processText :: Text -> NGramMap
 processText text = case runParser allSentences text of
     Nothing -> []
     Just (_, sentences) -> let
-        -- берем все слова из всех предложений
+        -- берем все слова из всех предложений, удаляя дубликаты
         allWords = nub $ concat sentences
         -- создаем n-граммы из всех предложений и удаляем дубликаты
         allNGrams = groupPairs 
@@ -174,6 +183,8 @@ processText text = case runParser allSentences text of
         in sortBy (\x y -> compare (fst x) (fst y)) 
            $ allNGrams ++ singleWords
 
+-- генерирует случайную фразу, начинающуюся с заданного слова
+-- возвращает ошибку, если начальное слово не найдено в словаре
 generatePhrase :: RandomGen g => g -> Text -> NGramMap -> Either Text [Text]
 generatePhrase gen firstWord nGrams = 
     -- если первого слова нет в словаре, то возвращаем ошибку (Left ошибка, Right [слова для фразы])
@@ -184,6 +195,7 @@ generatePhrase gen firstWord nGrams =
             let (targetLength, newGen) = randomR (2, 15) gen
             in Right $ generatePhraseHelper newGen [firstWord] firstWord nGrams targetLength
 
+-- генерирует фразу, начинающуюся с заданного слова
 generatePhraseHelper :: RandomGen g => g -> [Text] -> Text -> NGramMap -> Int -> [Text]
 generatePhraseHelper gen acc lastKey nGrams targetLength
     | length acc >= targetLength = take targetLength acc  -- достигли максимальной длины
