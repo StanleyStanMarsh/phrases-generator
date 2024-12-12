@@ -7,12 +7,29 @@ import System.Random (newStdGen)
 
 main :: IO ()
 main = do
-
+    test <- TIO.readFile "test.txt"
     input1 <- TIO.readFile "input.txt"
     input2 <- TIO.readFile "input2.txt"
+
+    case runParser allSentencesAsText test of
+      Nothing -> putStrLn "Error"
+      Just (remaining, processed) -> writeTextListToFile "sentences_test.txt" processed 
+
+    case runParser allSentencesAsText input1 of
+      Nothing -> putStrLn "Error"
+      Just (remaining, processed) -> writeTextListToFile "sentences1.txt" processed 
+
+    case runParser allSentencesAsText input2 of
+      Nothing -> putStrLn "Error"
+      Just (remaining, processed) -> writeTextListToFile "sentences2.txt" processed
     
+    let nGramsTest = processText test
     let nGrams1 = processText input1
     let nGrams2 = processText input2
+
+    writeDictionaryToFile "dictionary_test.txt" nGramsTest
+    writeDictionaryToFile "dictionary1.txt" nGrams1 
+    writeDictionaryToFile "dictionary2.txt" nGrams2
 
     -- print nGrams1
     -- print "\n"

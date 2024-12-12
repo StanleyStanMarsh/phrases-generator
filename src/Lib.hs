@@ -1,15 +1,18 @@
 module Lib
-    ( allSentences
+    ( allSentencesAsText
     , runParser
     , generatePhrase
     , processText
     , NGramMap
     , generateDialogue
+    , writeTextListToFile
+    , writeDictionaryToFile
     ) where
 
 import Control.Applicative
 import Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
 import Data.Char (isLetter, isSpace)
 import Data.List (sortBy, groupBy, nub)
 import System.Random (RandomGen, randomR, next, split)
@@ -280,3 +283,15 @@ generateDialogueHelper gen lastResponse speaker dict1 dict2 depth acc =
         dict2 
         (depth - 1) 
         ((nextSpeaker, nextResponse) : acc)
+
+writeTextListToFile :: FilePath -> [T.Text] -> IO ()
+writeTextListToFile filePath textList =
+  TIO.writeFile filePath (T.unlines textList)
+
+writeDictionaryToFile :: FilePath -> [(T.Text, [T.Text])] -> IO ()
+writeDictionaryToFile filePath dictionary =
+  TIO.writeFile filePath content
+  where
+    formatEntry (key, values) =
+      T.concat [key, T.pack " : [", T.intercalate (T.pack ", ") values, T.pack "]"]
+    content = T.unlines (map formatEntry dictionary)
