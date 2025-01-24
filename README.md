@@ -1,4 +1,145 @@
-# Генератор фраз и диалогов
+# EN - Phrase and Dialogue Generator
+
+A program for parsing text and generating text continuation based on N-grams.
+
+## Description
+
+### Finite State Automaton for Sentence Parsing
+
+![State Diagram of the Finite Automaton](automata_sentences_parser.png)
+
+M = (Q, Σ, δ, q₀, F), where:
+
+- Q = {S₀, S₁, S₂, S₃, S₄, S₅} - set of states
+- Σ = {L, P, W, EOF} - input alphabet, where:
+  * L - letters and apostrophes (isLetter c || c == '\'')
+  * P - punctuation marks (. ! ? ; : ( ))
+  * W - whitespace and other characters
+  * EOF - end of input
+- q₀ = S₀ - initial state
+- F = {S₄, S₅} - set of final states
+- δ: Q × Σ → Q - transition functions:
+
+|   State   | L | P | W | EOF |
+|-----------|---|---|---|-----|
+| S₀        | S₁| Sₑ| S₀| S₅ |
+| S₁        | S₁| S₃| S₂| S₅ |
+| S₂        | S₁| S₃| S₂| S₅ |
+| S₃        | S₁| S₃| S₀| S₄ |
+| S₄        | S₄| S₄| S₄| S₄ |
+| S₅        | S₅| S₅| S₅| S₅ |
+
+Where:
+- S₀: Initial state
+- S₁: Reading a word
+- S₂: Skipping whitespace/garbage
+- S₃: Reading punctuation marks
+- S₄: Final state (success)
+- Sₑ: Error state
+
+### Mathematical Model for Text Generation
+
+#### N-grams and Markov Chains
+
+![Bigram and Trigram Model](markov_chain.png)
+
+Text generation is based on a combined bigram and trigram model using Markov chains:
+
+1. **Bigram Model** (top part of the diagram):
+   - States: individual words \( wᵢ \)
+   - Transitions: \( P(wᵢ|wᵢ₋₁) \) - the probability \( p \) of transitioning from word \( wᵢ₋₁ \) to word \( wᵢ \)
+   - Each subsequent word depends only on the previous one.
+
+2. **Combined Bigram-Trigram Model** (middle part of the diagram):
+   - States:
+     * Individual words \( wᵢ₋₁ \)
+     * Pairs of words \( (wᵢ, wᵢ₊₁) \)
+   - Transitions:
+     * From a single word to a pair of words with probability \( p \)
+   - Captures longer dependencies.
+
+3. **Trigram Model** (bottom part of the diagram):
+   - States:
+     * Pairs of words \( (wᵢ₋₂, wᵢ₋₁) \)
+     * Individual words \( wᵢ \)
+   - Transitions: \( P(wᵢ|wᵢ₋₂, wᵢ₋₁) \) - the probability \( p \) of transitioning from a pair of words to the next word.
+   - Each subsequent word depends on the two previous ones.
+
+In this implementation, the transition probability \( p \) for a specific word among the possible continuations is uniform random — each continuation is selected with equal probability using a random number generator.
+
+### Overview of the Program
+
+The program performs the following tasks:
+
+1. **Text Parsing**:
+   - Reads text from a file.
+   - Splits text into sentences (based on .!?;:).
+   - Processes words, preserving apostrophes (e.g., "don't" as a single word).
+   - Removes punctuation and digits.
+
+2. **N-gram Model Creation**:
+   - Builds bigrams (pairs of words).
+   - Builds trigrams (triplets of words).
+   - Creates a dictionary where keys are:
+     * Single words.
+     * Word pairs.
+   - Values in the dictionary are lists of possible continuations.
+
+3. **Phrase Generation**:
+   - The user inputs a starting word.
+   - The program generates a phrase of random length (from 2 to 15 words).
+   - If the word is not found in the dictionary, an error message is displayed.
+
+4. **Model Dialogue**:
+   - Uses two different texts to create two models.
+   - Generates a dialogue of specified depth \( M \).
+   - Responses are based on the last word of the opponent’s phrase.
+   - If the word is missing in the dictionary, the program falls back to the penultimate word, and so on.
+
+## Usage
+
+1. Prepare two text files:
+   - `input.txt` - text for the first model.
+   - `input2.txt` - text for the second model.
+
+2. Run the program:
+   ```bash
+   stack build
+   stack exec phrases-generator-exe
+   ```
+
+3. Follow the instructions:
+   - Input the starting word for the dialogue.
+   - Specify the desired number of exchanges.
+
+## Technical Details
+
+- Language: Haskell
+- Libraries:
+  * text - for text processing.
+  * random - for random number generation.
+- Parsing is implemented using parser combinators.
+
+## Project Structure
+
+- `src/Lib.hs` - core logic of the program.
+- `app/Main.hs` - entry point and user interaction.
+
+## License
+
+[![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
+
+This project is licensed under the BSD 3-Clause License. Details can be found in the [LICENSE](LICENSE) file.
+
+## Additional Information
+
+Project uses:
+- GHC (Glasgow Haskell Compiler)
+- Stack (tool for Haskell project development)
+- Cabal (building system)
+Для сообщений об ошибках и предложений используйте раздел Issues на GitHub.
+
+# RU - Генератор фраз и диалогов
 
 Программа для синтаксического анализа текста и генерации продолжения текста на основе N-грамм.
 
@@ -125,6 +266,8 @@
 - `app/Main.hs` - точка входа и взаимодействие с пользователем
 
 ## Лицензия
+
+[![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
 Данный проект распространяется под лицензией BSD 3-Clause. Подробности в файле [LICENSE](LICENSE).
 
